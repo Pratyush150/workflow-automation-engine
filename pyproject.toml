@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowforge"
+version = "0.1.0"
+description = "DAG workflow engine with retries, idempotency, durable resume, cron scheduling and connectors"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Pratyush Vatsa" }]
+keywords = ["workflow", "automation", "dag", "retry", "idempotency", "scheduler", "cron", "etl"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Distributed Computing",
+]
+dependencies = []
+
+[project.optional-dependencies]
+# Neither is required. See flowforge/dsl.py and flowforge/connectors/csv_excel.py.
+yaml = ["PyYAML>=5.4"]
+excel = ["openpyxl>=3.0"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+flowforge = "flowforge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# -p no:launch_testing: a sourced ROS 2 workspace puts a launch_testing pytest
+# plugin on the path that is incompatible with pytest >= 8 and aborts collection
+# before any test runs. Blocking the name is a no-op when it is not installed.
+addopts = "-ra -p no:launch_testing -p no:launch_ros"

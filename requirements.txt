@@ -1,0 +1,8 @@
+# flowforge has no required runtime dependencies. It is stdlib-only on purpose:
+# an automation engine that pulls in a dependency tree is one more thing that
+# breaks at 3am. Optional extras live in pyproject.toml:
+#
+#   pip install -e ".[yaml]"    PyYAML, for full-YAML workflow files
+#   pip install -e ".[excel]"   openpyxl, for the .xlsx side of the csv_excel connector
+#
+# Every module imports and every test passes with none of them installed.

@@ -1,0 +1,66 @@
+# A workflow defined in YAML rather than Python.
+#
+# Operations owns this file: schedule, retries, timeouts and which steps run.
+# Engineering owns steps.py: what a step does. Validate it without running it:
+#
+#   ./tools/flowforge validate examples/workflows/nightly_rollup.yaml
+#   ./tools/flowforge graph    examples/workflows/nightly_rollup.yaml
+#   ./tools/flowforge next-runs --workflow examples/workflows/nightly_rollup.yaml
+#   ./tools/flowforge run examples/workflows/nightly_rollup.yaml --param out_dir=/tmp/ff --gantt
+
+name: nightly_rollup
+description: Extract orders, validate, roll up by region, write a CSV, notify.
+deadline: 120
+
+schedule:
+  cron: "15 3 * * mon-fri"
+  tz: Europe/London
+
+defaults:
+  retry: {attempts: 3, strategy: exponential, base: 0.05, max_delay: 2}
+  timeout: 30
+
+tasks:
+  - id: extract
+    uses: python:steps:extract
+    description: pull raw order rows from the source system
+    # Read-only, so a retry cannot duplicate anything.
+    idempotent: true
+
+  - id: validate
+    uses: python:steps:validate_rows
+    depends_on: [extract]
+    with:
+      required: [order_id, region, amount]
+    # Bad input is permanent, so retrying it is waste: one attempt only.
+    retry: 1
+
+  - id: rollup
+    uses: python:steps:rollup
+    depends_on: [validate]
+    idempotent: true
+
+  - id: write_csv
+    uses: python:steps:write_csv
+    depends_on: [rollup]
+    with: {filename: rollup.csv}
+    # Writes through a temp file and renames, so re-running overwrites cleanly.
+    idempotent: true
+
+  - id: checksum
+    uses: connector:shell
+    depends_on: [write_csv]
+    timeout: 10
+    idempotency_key: auto
+    with:
+      command: [python3, -c, "import sys;print('checksum step ran')"]
+
+  - id: notify
+    uses: python:steps:notify
+    depends_on: [rollup, write_csv]
+    with: {to: ops@internal}
+    # One notification per run date, however many times this file is re-run.
+    idempotency_key: "notify:{param:run_date}"
+    retry: 1
+    # Losing the notification must not lose the report that was already written.
+    on_failure: skip
