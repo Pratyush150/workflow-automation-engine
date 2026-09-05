@@ -31,6 +31,19 @@ That is what this library is about.
 
 ---
 
+## Screenshots
+
+![Terminal DAG render showing six tasks grouped into five levels with retry and timeout policy, plus the critical path](docs/screenshots/dag-graph.png)
+`./tools/flowforge graph examples/workflows/nightly_rollup.yaml`: the DAG for the bundled nightly rollup workflow, grouped by the level each task can run at, with each task's retry, timeout and idempotency policy, the critical path, and how wide each level is.
+
+![Terminal run summary with a per-task timeline, retry counts, and a root-cause block naming the failed task and what it blocked](docs/screenshots/run-timeline.png)
+The run section of `./tools/flowforge --demo`. Six tasks, one of which fails twice against a simulated 503. The timeline shows what ran in parallel and where the retries went; the root-cause block names the task that raised, how many attempts it took, and which downstream task was dropped as a result.
+
+![Terminal output of a failed run, a resume that runs only the unfinished tasks, and a full re-run served from the idempotency store](docs/screenshots/failure-and-resume.png)
+`python3 examples/resume_after_failure.py`: an invoice run that fails when the ledger API refuses the connection, a resume that re-runs only the two unfinished tasks, and a full re-run from scratch. The customer emails are sent exactly three times across all three runs, because the idempotency store serves the repeat.
+
+---
+
 ## What it does
 
 - **A DAG of tasks** with topological ordering, level grouping for parallel
